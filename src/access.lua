@@ -59,7 +59,7 @@ local function validate_roles(conf, token)
    return true-- no roles provided for checking. Ok.
   end
   while (_next ~= nil) do
-    if (is_member(_next, token['roles']) == true) then
+    if (is_member(_next, token["realm_access"]["roles"]) == true) then
       return true
     end
     _next = next(_allowed_roles)
