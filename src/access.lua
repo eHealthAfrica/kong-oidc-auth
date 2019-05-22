@@ -261,7 +261,7 @@ function _M.run(conf)
 		local userInfo = getKongKey(encrypted_token, access_token, callback_url, conf)
 		if userInfo then
       -- Check if allowed_roles is set && enforce
-      local valid = validate_roles(conf, access_token)
+      local valid = validate_roles(conf, userInfo)
       if valid == false then
         return kong.response.exit(401, { message = "User lacks valid role for this OIDC resource" })
       end
