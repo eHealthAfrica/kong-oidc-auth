@@ -52,9 +52,22 @@ local function is_member(_obj, _set)
   return false
 end
 
+local function dump(o)
+   if type(o) == 'table' then
+      local s = '{ '
+      for k,v in pairs(o) do
+         if type(k) ~= 'number' then k = '"'..k..'"' end
+         s = s .. '['..k..'] = ' .. dump(v) .. ','
+      end
+      return s .. '} '
+   else
+      return ngx.log(ngx.ERR, tostring(o))
+   end
+end
+
 local function validate_roles(conf, token)
-  ngx.log(conf)
-  ngx.log(token)
+  dump(token)
+  dump(conf)
   local _allowed_roles = conf.allowed_roles
   local _next = next(_allowed_roles)
   if _next == nil then
