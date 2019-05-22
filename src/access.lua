@@ -59,6 +59,7 @@ end
 
 local function is_member(_obj, _set)
   for _,v in pairs(_set) do
+    ngx.log(ngx.ERR, 'checking', v)
     if v == _obj then
       return true
     end
@@ -77,7 +78,6 @@ local function validate_roles(conf, token)
   while (_next ~= nil) do
     if (is_member(_next, token["groups"]) == true) then
       return true
-      break
     end
     _next = next(_allowed_roles)
     ngx.log(ngx.ERR, 'Checking', _next)
