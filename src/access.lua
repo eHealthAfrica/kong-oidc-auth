@@ -77,8 +77,10 @@ local function validate_roles(conf, token)
   while (_next ~= nil) do
     if (is_member(_next, token["groups"]) == true) then
       return true
+      break
     end
     _next = next(_allowed_roles)
+    ngx.log(ngx.ERR, 'Checking', _next)
   end
   return false -- no matching roles
 end
@@ -263,6 +265,7 @@ function _M.run(conf)
       -- Check if allowed_roles is set && enforce
       local valid = validate_roles(conf, userInfo)
       if valid == false then
+        ngx.log(ngx.ERR, 'Roles invalid')
         return kong.response.exit(401, { message = "User lacks valid role for this OIDC resource" })
       end
 		  for i, key in ipairs(conf.user_keys) do
@@ -287,6 +290,7 @@ function _M.run(conf)
         -- Check if allowed_roles is set && enforce
         local valid = validate_roles(conf, json)
         if valid == false then
+          ngx.log(ngx.ERR, 'Roles invalid')
           return kong.response.exit(401, { message = "User lacks valid role for this OIDC resource" })
         end
 		    if conf.hosted_domain ~= "" and conf.email_key ~= "" then
