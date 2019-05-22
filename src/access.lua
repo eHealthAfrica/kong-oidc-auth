@@ -61,13 +61,13 @@ local function dump(o)
       end
       return s .. '} '
    else
-      return ngx.log(ngx.ERR, tostring(o))
+      return tostring(o)
    end
 end
 
 local function validate_roles(conf, token)
-  dump(token)
-  dump(conf)
+  ngx.log(ngx.ERR, dump(token))
+  ngx.log(ngx.ERR, dump(conf))
   local _allowed_roles = conf.allowed_roles
   local _next = next(_allowed_roles)
   if _next == nil then
