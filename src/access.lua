@@ -75,12 +75,11 @@ local function validate_roles(conf, token)
   if _next == nil then
    return true-- no roles provided for checking. Ok.
   end
-  while (_next ~= nil) do
-    if (is_member(_next, token["groups"]) == true) then
+  for _, role in pairs(_allowed_roles) do
+    ngx.log(ngx.ERR, 'Checking', role)
+    if (is_member(role, token["groups"]) == true) then
       return true
     end
-    _next = next(_allowed_roles)
-    ngx.log(ngx.ERR, 'Checking', _next)
   end
   return false -- no matching roles
 end
