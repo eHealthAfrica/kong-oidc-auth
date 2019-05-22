@@ -11,6 +11,19 @@ local oidc_error = nil
 local salt = nil --16 char alphanumeric
 local cookieDomain = nil
 
+local function dump(o)
+   if type(o) == 'table' then
+      local s = '{ '
+      for k,v in pairs(o) do
+         if type(k) ~= 'number' then k = '"'..k..'"' end
+         s = s .. '['..k..'] = ' .. dump(v) .. ','
+      end
+      return s .. '} '
+   else
+      return tostring(o)
+   end
+end
+
 local function getUserInfo(access_token, callback_url, conf)
     local httpc = http:new()
     local res, err = httpc:request_uri(conf.user_url, {
@@ -53,18 +66,6 @@ local function is_member(_obj, _set)
   return false
 end
 
-local function dump(o)
-   if type(o) == 'table' then
-      local s = '{ '
-      for k,v in pairs(o) do
-         if type(k) ~= 'number' then k = '"'..k..'"' end
-         s = s .. '['..k..'] = ' .. dump(v) .. ','
-      end
-      return s .. '} '
-   else
-      return tostring(o)
-   end
-end
 
 local function validate_roles(conf, token)
   ngx.log(ngx.ERR, dump(token))
