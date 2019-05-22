@@ -43,6 +43,30 @@ local function getKongKey(eoauth_token, access_token, callback_url, conf)
   return userInfo
 end
 
+local function is_member(_obj, _set)
+  for _,v in pairs(_set) do
+    if v == _obj then
+      return true
+    end
+  end
+  return false
+end
+
+local function validate_roles(conf, token)
+  local _allowed_roles = conf.allowed_roles
+  local _next = next(_allowed_roles)
+  if _next == nil then
+   return true-- no roles provided for checking. Ok.
+  end
+  while (_next ~= nil) do
+    if (is_member(_next, token['roles']) == true) then
+      return true
+    end
+    _next = next(_allowed_roles)
+  end
+  return false -- no matching roles
+end
+
 function redirect_to_auth( conf, callback_url )
     -- Track the endpoint they wanted access to so we can transparently redirect them back
     if type(ngx.header["Set-Cookie"]) == "table" then
@@ -220,6 +244,11 @@ function _M.run(conf)
   if conf.user_info_cache_enabled then
 		local userInfo = getKongKey(encrypted_token, access_token, callback_url, conf)
 		if userInfo then
+      -- Check if allowed_roles is set && enforce
+      local valid = validate_roles(conf, userInfo)
+      if valid == false then
+        return kong.response.exit(401, { message = "User lacks valid role for this OIDC resource" })
+      end
 		  for i, key in ipairs(conf.user_keys) do
 		      ngx.header["X-Oauth-".. key] = userInfo[key]
 		      ngx.req.set_header("X-Oauth-".. key, userInfo[key])
@@ -239,6 +268,11 @@ function _M.run(conf)
 		local json = getUserInfo(access_token, callback_url, conf)
 
 		if json then
+        -- Check if allowed_roles is set && enforce
+        local valid = validate_roles(conf, json)
+        if valid == false then
+          return kong.response.exit(401, { message = "User lacks valid role for this OIDC resource" })
+        end
 		    if conf.hosted_domain ~= "" and conf.email_key ~= "" then
     			if not pl_stringx.endswith(json[conf.email_key], conf.hosted_domain) then
     			    oidc_error = {status = ngx.HTTP_UNAUTHORIZED, message = "Hosted domain is not matching"}
