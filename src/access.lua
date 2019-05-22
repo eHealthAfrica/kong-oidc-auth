@@ -69,14 +69,13 @@ end
 
 local function validate_roles(conf, token)
   ngx.log(ngx.ERR, dump(token))
-  ngx.log(ngx.ERR, dump(conf))
   local _allowed_roles = conf.allowed_roles
   local _next = next(_allowed_roles)
   if _next == nil then
    return true-- no roles provided for checking. Ok.
   end
   while (_next ~= nil) do
-    if (is_member(_next, token["realm_access"]["roles"]) == true) then
+    if (is_member(_next, token["groups"]) == true) then
       return true
     end
     _next = next(_allowed_roles)
