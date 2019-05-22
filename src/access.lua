@@ -53,6 +53,8 @@ local function is_member(_obj, _set)
 end
 
 local function validate_roles(conf, token)
+  ngx.log(conf)
+  ngx.log(token)
   local _allowed_roles = conf.allowed_roles
   local _next = next(_allowed_roles)
   if _next == nil then
