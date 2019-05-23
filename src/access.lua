@@ -40,7 +40,6 @@ local function getUserInfo(access_token, callback_url, conf)
   end
 
   local userJson = cjson.decode(res.body)
-  ngx.log(ngx.ERR, "USER-INFO", dump(userJson))
   return userJson
 end
 
