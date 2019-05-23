@@ -59,7 +59,6 @@ end
 
 local function is_member(_obj, _set)
   for _,v in pairs(_set) do
-    ngx.log(ngx.ERR, 'checking', v)
     if v == _obj then
       return true
     end
@@ -69,14 +68,16 @@ end
 
 
 local function validate_roles(conf, token)
-  ngx.log(ngx.ERR, dump(token))
+  if token["groups"] == nil then
+    ngx.log(ngx.ERR, 'oidc.userinfo.groups not availble! Check keycloak settings.')
+    return false
+  end
   local _allowed_roles = conf.allowed_roles
   local _next = next(_allowed_roles)
   if _next == nil then
    return true-- no roles provided for checking. Ok.
   end
   for _, role in pairs(_allowed_roles) do
-    ngx.log(ngx.ERR, 'Checking', role)
     if (is_member(role, token["groups"]) == true) then
       return true
     end
@@ -264,7 +265,6 @@ function _M.run(conf)
       -- Check if allowed_roles is set && enforce
       local valid = validate_roles(conf, userInfo)
       if valid == false then
-        ngx.log(ngx.ERR, 'Roles invalid')
         return kong.response.exit(401, { message = "User lacks valid role for this OIDC resource" })
       end
 		  for i, key in ipairs(conf.user_keys) do
@@ -289,7 +289,6 @@ function _M.run(conf)
         -- Check if allowed_roles is set && enforce
         local valid = validate_roles(conf, json)
         if valid == false then
-          ngx.log(ngx.ERR, 'Roles invalid')
           return kong.response.exit(401, { message = "User lacks valid role for this OIDC resource" })
         end
 		    if conf.hosted_domain ~= "" and conf.email_key ~= "" then
