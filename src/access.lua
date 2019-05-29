@@ -122,10 +122,14 @@ function  handle_logout(encrypted_token, conf)
    --Terminate the Cookie
    local redirect_url = string.format("%s?redirect_uri=%s", conf.service_logout_url, conf.app_login_redirect_url)
    if type(ngx.header["Set-Cookie"]) == "table" then
-    ngx.header["Set-Cookie"] = { "EOAuthRealm=;EOAuthToken=;Path=/;Expires=Thu, Jan 01 1970 00:00:00 UTC;Max-Age=0;HttpOnly" .. cookieDomain, unpack(ngx.header["Set-Cookie"]) }
+    ngx.header["Set-Cookie"] = { "EOAuthToken=;Path=/;Expires=Thu, Jan 01 1970 00:00:00 UTC;Max-Age=0;HttpOnly" .. cookieDomain, unpack(ngx.header["Set-Cookie"]) }
    else
-        ngx.header["Set-Cookie"] = { "EOAuthRealm=;EOAuthToken=;Path=/;Expires=Thu, Jan 01 1970 00:00:00 UTC;Max-Age=0;HttpOnly" .. cookieDomain, ngx.header["Set-Cookie"] }
+     ngx.header["Set-Cookie"] = { "EOAuthToken=;Path=/;Expires=Thu, Jan 01 1970 00:00:00 UTC;Max-Age=0;HttpOnly" .. cookieDomain, ngx.header["Set-Cookie"] }
    end
+   if conf.realm ~= nil then
+     ngx.header["Set-Cookie"] = {"EOAuthRealm=;Path=/;Expires=Thu, Jan 01 1970 00:00:00 UTC;Max-Age=0;HttpOnly" .. cookieDomain, unpack(ngx.header["Set-Cookie"]) }
+   end
+
    -- Remove session
    if conf.user_info_cache_enabled then
       singletons.cache:invalidate(encrypted_token)
@@ -171,17 +175,12 @@ function  handle_callback( conf, callback_url )
         end
 
         if type(ngx.header["Set-Cookie"]) == "table" then
-           if conf.realm ~= nil then
-             ngx.header["Set-Cookie"] = {"EOAuthRealm=" .. conf.realm .. ";EOAuthToken=" .. encode_token(access_token, conf) .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, unpack(ngx.header["Set-Cookie"]) }
-           else
-             ngx.header["Set-Cookie"] = { "EOAuthToken=" .. encode_token(access_token, conf) .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, unpack(ngx.header["Set-Cookie"]) }
-           end
+           ngx.header["Set-Cookie"] = { "EOAuthToken=" .. encode_token(access_token, conf) .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, unpack(ngx.header["Set-Cookie"]) }
         else
-           if conf.realm ~= nil then
-             ngx.header["Set-Cookie"] = { "EOAuthRealm=" .. conf.realm .. ";EOAuthToken=" .. encode_token(access_token, conf) .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, ngx.header["Set-Cookie"] }
-           else
-             ngx.header["Set-Cookie"] = { "EOAuthToken=" .. encode_token(access_token, conf) .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, ngx.header["Set-Cookie"] }
-           end
+           ngx.header["Set-Cookie"] = { "EOAuthToken=" .. encode_token(access_token, conf) .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, ngx.header["Set-Cookie"] }
+        end
+        if conf.realm ~= nil then
+          ngx.header["Set-Cookie"] = {"EOAuthRealm=" .. conf.realm .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, unpack(ngx.header["Set-Cookie"]) }
         end
 
         -- Support redirection back to Kong if necessary
@@ -260,17 +259,12 @@ function _M.run(conf)
   
   --Update the Cookie to increase longevity for 30 more minutes if active proxying
   if type(ngx.header["Set-Cookie"]) == "table" then
-    if conf.realm ~= nil then
-      ngx.header["Set-Cookie"] = { "EOAuthRealm=" .. conf.realm .. ";EOAuthToken=" .. encode_token(access_token, conf) .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, unpack(ngx.header["Set-Cookie"]) }
-    else
-      ngx.header["Set-Cookie"] = { "EOAuthToken=" .. encode_token(access_token, conf) .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, unpack(ngx.header["Set-Cookie"]) }
-    end
+    ngx.header["Set-Cookie"] = { "EOAuthToken=" .. encode_token(access_token, conf) .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, unpack(ngx.header["Set-Cookie"]) }
   else
-    if conf.realm ~= nil then
-      ngx.header["Set-Cookie"] = { "EOAuthRealm=" .. conf.realm .. ";EOAuthToken=" .. encode_token(access_token, conf) .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, ngx.header["Set-Cookie"] }
-    else
-      ngx.header["Set-Cookie"] = { "EOAuthToken=" .. encode_token(access_token, conf) .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, ngx.header["Set-Cookie"] }
-    end
+    ngx.header["Set-Cookie"] = { "EOAuthToken=" .. encode_token(access_token, conf) .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, ngx.header["Set-Cookie"] }
+  end
+  if conf.realm ~= nil then
+    ngx.header["Set-Cookie"] = {"EOAuthRealm=" .. conf.realm .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, unpack(ngx.header["Set-Cookie"]) }
   end
 
    --CACHE LOGIC - Check boolean and then if EOAUTH has existing key -> userInfo value
