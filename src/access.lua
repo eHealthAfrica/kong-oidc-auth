@@ -287,7 +287,8 @@ function _M.run(conf)
   local auth_header = ngx.var.http_Authorization
   local _ -- Keep off the global scope
   local encrypted_token
-
+  local err
+  
   if auth_header then
     _, _, access_token = string.find(auth_header, "Bearer%s+(.+)")
   end
@@ -299,7 +300,7 @@ function _M.run(conf)
       local hashed = encode_token(base64_basic, conf)
       encrypted_token, err = singletons.cache:get("basicauth." .. hashed, { ttl = conf.user_info_periodic_check }, tokenFromBasic, base64_basic, conf)
       if err then
-        return kong.response.HTTP_INTERNAL_SERVER_ERROR(err)
+        return kong.response.exit(401, err)
       end
     end
   else
