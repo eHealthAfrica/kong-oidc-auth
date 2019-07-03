@@ -11,14 +11,48 @@ local oidc_error = nil
 local salt = nil --16 char alphanumeric
 local cookieDomain = nil
 
+-- 
+-- BASIC AUTH
+-- 
 
+-- Get A token via PasswordGrant
+local function getTokenViaBasic(user, pw, conf)
+  local httpc = http:new()
+  local res, err = httpc:request_uri(conf.token_url, {
+    method = "POST",
+    ssl_verify = false,
+    body = "grant_type=password&client_id=" .. conf.client_id .. "&client_secret=" .. conf.client_secret .. "&username=" .. user .. "&password=" .. pw .. "&scope=" .. conf.scope,
+    headers = {
+      ["Content-Type"] = "application/x-www-form-urlencoded",
+    }
+  })
+  return res, err
+end
 
+-- Extract credential parts from {user}:{pw}
 local function credsFromBasic(authString)
-  -- local m, err = ngx.re.match(ngx.var.uri, "/(?<app>[^/]+)-app(?<url>.+)", "ao")
   local m, err = ngx.re.match(authString, "(?<user>[^:]+):(?<pw>[^:]+)", "ao")
-  -- local user = string.gmatch(authString, '([^:]+)')
   return m
 end
+
+-- Cache failure callback function that handles basicauth
+local function tokenFromBasic(base64_basic, conf)
+  local plain_text = ngx.decode_base64(base64_basic)
+  local c = credsFromBasic(plain_text)
+  if c["user"] == nil or c["pw"] == nil then
+    error("Malformed Basic Auth Request")
+  end
+  local res, err = getTokenViaBasic(c["user"], c["pw"], conf)
+  if err ~= nil then
+    error(err)
+  end
+  if res.status ~= 200 then
+    return error(res.body )
+  end
+  local userJson = cjson.decode(res.body)
+  return encode_token(userJson['access_token'], conf)
+end
+
 
 -- Convenience function for logging objects... because LUA...
 local function dump(o)
@@ -158,21 +192,6 @@ function  handle_logout(encrypted_token, conf)
    return ngx.redirect(redirect_url)
 end
 
--- Get A token via PasswordGrant
-
-local function getTokenViaBasic(user, pw, conf)
-  local httpc = http:new()
-  local res, err = httpc:request_uri(conf.token_url, {
-    method = "POST",
-    ssl_verify = false,
-    body = "grant_type=password&client_id=" .. conf.client_id .. "&client_secret=" .. conf.client_secret .. "&username=" .. user .. "&password=" .. pw .. "&scope=" .. conf.scope,
-    headers = {
-      ["Content-Type"] = "application/x-www-form-urlencoded",
-    }
-  })
-  return res, err
-end
-
 -- Callback Handling
 function  handle_callback( conf, callback_url )
   local args = ngx.req.get_uri_args()
@@ -272,32 +291,35 @@ function _M.run(conf)
   if auth_header then
     _, _, access_token = string.find(auth_header, "Bearer%s+(.+)")
   end
+  -- Try to Perform BasicAuth
   if auth_header and access_token == nil then
     local base64_basic
     _, _, base64_basic = string.find(auth_header, "Basic%s+(.+)")
     if base64_basic ~= nil then
-      local plain_text = ngx.decode_base64(base64_basic)
-      local c = credsFromBasic(plain_text)
-      if c["user"] == nil or c["pw"] == nil then
-        return kong.response.exit(400, { message = "Malformed Basic Auth Request" })
+      local hashed = encode_token(base64_basic, conf)
+      encrypted_token, err = cache:get("basicauth." .. hashed, nil, tokenFromBasic, base64_basic, conf)
+      if err then
+        return response.HTTP_INTERNAL_SERVER_ERROR(err)
       end
-      local res, err = getTokenViaBasic(c["user"], c["pw"], conf)
-      if err ~= nil then
-        return kong.response.exit(400, { message = "Could not perform basic auth" })
-      end
-      if res.status ~= 200 then
-        return kong.response.exit(res.status, { message = res.body })
-      end
-      local userJson = cjson.decode(res.body)
-      encrypted_token = encode_token(userJson['access_token'], conf)
-      ngx.log(ngx.ERR, "token: ", encrypted_token)
-      -- -- encrypted_token = encode_token(access_token, conf)
+      -- local plain_text = ngx.decode_base64(base64_basic)
+      -- local c = credsFromBasic(plain_text)
+      -- if c["user"] == nil or c["pw"] == nil then
+      --   return kong.response.exit(400, { message = "Malformed Basic Auth Request" })
+      -- end
+      -- local res, err = getTokenViaBasic(c["user"], c["pw"], conf)
+      -- if err ~= nil then
+      --   return kong.response.exit(400, { message = "Could not perform basic auth" })
+      -- end
+      -- if res.status ~= 200 then
+      --   return kong.response.exit(res.status, { message = res.body })
+      -- end
+      -- local userJson = cjson.decode(res.body)
+      -- encrypted_token = encode_token(userJson['access_token'], conf)
     end
   else
     -- Try to get token from cookie
     encrypted_token = ngx.var.cookie_EOAuthToken  
   end
-  ngx.log(ngx.ERR, "e_token: ", encrypted_token)
 
   -- No token, send to auth
   if encrypted_token == nil  and access_token == nil then 
