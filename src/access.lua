@@ -289,7 +289,7 @@ function _M.run(conf)
         return kong.response.exit(res.status, { message = res.body })
       end
       local userJson = cjson.decode(res.body)
-      ngx.log(ngx.ERR, "token: ", userJson)
+      ngx.log(ngx.ERR, "token: ", dump(userJson))
       -- encrypted_token = encode_token(access_token, conf)
     end
   else
