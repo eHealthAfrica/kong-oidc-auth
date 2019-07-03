@@ -297,24 +297,14 @@ function _M.run(conf)
     _, _, base64_basic = string.find(auth_header, "Basic%s+(.+)")
     if base64_basic ~= nil then
       local hashed = encode_token(base64_basic, conf)
-      encrypted_token, err = singletons.cache:get("basicauth." .. hashed, nil, tokenFromBasic, base64_basic, conf)
+      encrypted_token, err = singletons.cache:get(
+        "basicauth." .. hashed,
+        {ttl = conf.user_info_periodic_check},
+        tokenFromBasic, base64_basic, conf
+      )
       if err then
         return response.HTTP_INTERNAL_SERVER_ERROR(err)
       end
-      -- local plain_text = ngx.decode_base64(base64_basic)
-      -- local c = credsFromBasic(plain_text)
-      -- if c["user"] == nil or c["pw"] == nil then
-      --   return kong.response.exit(400, { message = "Malformed Basic Auth Request" })
-      -- end
-      -- local res, err = getTokenViaBasic(c["user"], c["pw"], conf)
-      -- if err ~= nil then
-      --   return kong.response.exit(400, { message = "Could not perform basic auth" })
-      -- end
-      -- if res.status ~= 200 then
-      --   return kong.response.exit(res.status, { message = res.body })
-      -- end
-      -- local userJson = cjson.decode(res.body)
-      -- encrypted_token = encode_token(userJson['access_token'], conf)
     end
   else
     -- Try to get token from cookie
