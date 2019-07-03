@@ -289,8 +289,9 @@ function _M.run(conf)
         return kong.response.exit(res.status, { message = res.body })
       end
       local userJson = cjson.decode(res.body)
-      ngx.log(ngx.ERR, "token: ", dump(userJson))
-      -- encrypted_token = encode_token(access_token, conf)
+      local encrypted_token = encode_token(userJson['access_token'], conf)
+      -- ngx.log(ngx.ERR, "token: ", dump(userJson))
+      -- -- encrypted_token = encode_token(access_token, conf)
     end
   else
     -- Try to get token from cookie
