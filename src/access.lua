@@ -299,7 +299,7 @@ function _M.run(conf)
       local hashed = encode_token(base64_basic, conf)
       encrypted_token, err = singletons.cache:get("basicauth." .. hashed, { ttl = conf.user_info_periodic_check }, tokenFromBasic, base64_basic, conf)
       if err then
-        return response.HTTP_INTERNAL_SERVER_ERROR(err)
+        return kong.response.HTTP_INTERNAL_SERVER_ERROR(err)
       end
     end
   else
