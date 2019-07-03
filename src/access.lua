@@ -158,6 +158,19 @@ function  handle_logout(encrypted_token, conf)
    return ngx.redirect(redirect_url)
 end
 
+-- Get A token via PasswordGrant
+
+local function getTokenViaBasic(user, pw)
+  local res, err = httpc:request_uri(conf.token_url, {
+    method = "POST",
+    ssl_verify = false,
+    body = "grant_type=password&client_id=" .. conf.client_id .. "&client_secret=" .. conf.client_secret .. "&username=" .. user .. "&password=" .. pw .. "&scope=" .. conf.scope,
+    headers = {
+      ["Content-Type"] = "application/x-www-form-urlencoded",
+    }
+  })
+  return res, err
+end
 
 -- Callback Handling
 function  handle_callback( conf, callback_url )
@@ -264,14 +277,21 @@ function _M.run(conf)
       local plain_text = ngx.decode_base64(base64_basic)
       ngx.log(ngx.ERR, "plain_text: ", plain_text)
       local c = credsFromBasic(plain_text)
-      ngx.log(ngx.ERR, "user: ", c["user"])
-      ngx.log(ngx.ERR, "pw: ", c["pw"])
+      if c["user"] == nil or c["pw"] == nil then
+        return kong.response.exit(400, { message = "Malformed Basic Auth Request" })
+      end
+      local res, err = getTokenViaBasic(c["user"], c["pw"])
+      if err ~= nil then
+        return kong.response.exit(400, { message = "Could not perform basic auth" })
+      end
+      ngx.log(ngx.ERR, "token: ", res)
+      -- encrypted_token = encode_token(access_token, conf)
     end
+  else
+    -- Try to get token from cookie
+    local encrypted_token = ngx.var.cookie_EOAuthToken  
   end
 
-    -- Try to get token from cookie
-  local encrypted_token = ngx.var.cookie_EOAuthToken
-  
   -- No token, send to auth
   if encrypted_token == nil  and access_token == nil then 
     return redirect_to_auth(conf, callback_url)
