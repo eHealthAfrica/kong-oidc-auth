@@ -267,16 +267,16 @@ function _M.run(conf)
   local access_token = nil
   local auth_header = ngx.var.http_Authorization
   local _ -- Keep off the global scope
+  local encrypted_token
+
   if auth_header then
     _, _, access_token = string.find(auth_header, "Bearer%s+(.+)")
   end
   if auth_header and access_token == nil then
-    ngx.log(ngx.ERR, "auth_header: ", auth_header)
     local base64_basic
     _, _, base64_basic = string.find(auth_header, "Basic%s+(.+)")
     if base64_basic ~= nil then
       local plain_text = ngx.decode_base64(base64_basic)
-      ngx.log(ngx.ERR, "plain_text: ", plain_text)
       local c = credsFromBasic(plain_text)
       if c["user"] == nil or c["pw"] == nil then
         return kong.response.exit(400, { message = "Malformed Basic Auth Request" })
@@ -289,14 +289,15 @@ function _M.run(conf)
         return kong.response.exit(res.status, { message = res.body })
       end
       local userJson = cjson.decode(res.body)
-      local encrypted_token = encode_token(userJson['access_token'], conf)
-      -- ngx.log(ngx.ERR, "token: ", dump(userJson))
+      encrypted_token = encode_token(userJson['access_token'], conf)
+      ngx.log(ngx.ERR, "token: ", encrypted_token)
       -- -- encrypted_token = encode_token(access_token, conf)
     end
   else
     -- Try to get token from cookie
-    local encrypted_token = ngx.var.cookie_EOAuthToken  
+    encrypted_token = ngx.var.cookie_EOAuthToken  
   end
+  ngx.log(ngx.ERR, "e_token: ", encrypted_token)
 
   -- No token, send to auth
   if encrypted_token == nil  and access_token == nil then 
@@ -308,7 +309,7 @@ function _M.run(conf)
     encrypted_token = encode_token(access_token, conf)
   end
     -- check if we are authenticated already
-    if access_token == nil then
+  if access_token == nil then
     access_token = decode_token(encrypted_token, conf)
     if not access_token then
     -- broken access token
