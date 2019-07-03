@@ -285,7 +285,11 @@ function _M.run(conf)
       if err ~= nil then
         return kong.response.exit(400, { message = "Could not perform basic auth" })
       end
-      ngx.log(ngx.ERR, "token: ", res)
+      if res.status ~= 200 then
+        return kong.response.exit(res.status, { message = res.body })
+      end
+      local userJson = cjson.decode(res.body)
+      ngx.log(ngx.ERR, "token: ", userJson)
       -- encrypted_token = encode_token(access_token, conf)
     end
   else
