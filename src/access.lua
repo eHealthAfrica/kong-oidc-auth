@@ -244,8 +244,18 @@ function _M.run(conf)
   
   local access_token = nil
   local auth_header = ngx.var.http_Authorization
+  local _ -- Keep off the global scope
   if auth_header then
     _, _, access_token = string.find(auth_header, "Bearer%s+(.+)")
+  end
+  if auth_header and access_token == nil then
+    ngx.log(ngx.ERR, "auth_header: ", auth_header)
+    local base64_basic
+    _, _, base64_basic = string.find(auth_header, "Basic%s+(.+)")
+    if base64_basic ~= nil then
+      local plain_text = ngx.decode_base64(base64_basic)
+      ngx.log(ngx.ERR, "plain_text: ", plain_text)
+    end
   end
 
     -- Try to get token from cookie
