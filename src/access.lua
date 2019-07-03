@@ -160,7 +160,7 @@ end
 
 -- Get A token via PasswordGrant
 
-local function getTokenViaBasic(user, pw, conf)
+function getTokenViaBasic(user, pw, conf)
   local res, err = httpc:request_uri(conf.token_url, {
     method = "POST",
     ssl_verify = false,
