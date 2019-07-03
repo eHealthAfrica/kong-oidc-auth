@@ -160,7 +160,7 @@ end
 
 -- Get A token via PasswordGrant
 
-local function getTokenViaBasic(user, pw)
+local function getTokenViaBasic(user, pw, conf)
   local res, err = httpc:request_uri(conf.token_url, {
     method = "POST",
     ssl_verify = false,
@@ -280,7 +280,7 @@ function _M.run(conf)
       if c["user"] == nil or c["pw"] == nil then
         return kong.response.exit(400, { message = "Malformed Basic Auth Request" })
       end
-      local res, err = getTokenViaBasic(c["user"], c["pw"])
+      local res, err = getTokenViaBasic(c["user"], c["pw"], conf)
       if err ~= nil then
         return kong.response.exit(400, { message = "Could not perform basic auth" })
       end
