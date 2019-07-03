@@ -297,11 +297,7 @@ function _M.run(conf)
     _, _, base64_basic = string.find(auth_header, "Basic%s+(.+)")
     if base64_basic ~= nil then
       local hashed = encode_token(base64_basic, conf)
-      encrypted_token, err = singletons.cache:get(
-        "basicauth." .. hashed,
-        {ttl = conf.user_info_periodic_check},
-        tokenFromBasic, base64_basic, conf
-      )
+      encrypted_token, err = singletons.cache:get("basicauth." .. hashed, { ttl = conf.user_info_periodic_check }, tokenFromBasic, base64_basic, conf)
       if err then
         return response.HTTP_INTERNAL_SERVER_ERROR(err)
       end
