@@ -40,14 +40,14 @@ local function tokenFromBasic(base64_basic, conf)
   local plain_text = ngx.decode_base64(base64_basic)
   local c = credsFromBasic(plain_text)
   if c["user"] == nil or c["pw"] == nil then
-    error("Malformed Basic Auth Request")
+    return nil
   end
   local res, err = getTokenViaBasic(c["user"], c["pw"], conf)
   if err ~= nil then
-    error(err)
+    return nil
   end
   if res.status ~= 200 then
-    return error(res.body )
+    return nil
   end
   local userJson = cjson.decode(res.body)
   return encode_token(userJson['access_token'], conf)
@@ -288,7 +288,7 @@ function _M.run(conf)
   local _ -- Keep off the global scope
   local encrypted_token
   local err
-  
+
   if auth_header then
     _, _, access_token = string.find(auth_header, "Bearer%s+(.+)")
   end
@@ -299,8 +299,8 @@ function _M.run(conf)
     if base64_basic ~= nil then
       local hashed = encode_token(base64_basic, conf)
       encrypted_token, err = singletons.cache:get("basicauth." .. hashed, { ttl = conf.user_info_periodic_check }, tokenFromBasic, base64_basic, conf)
-      if err then
-        return kong.response.exit(401, err)
+      if not encrypted_token then
+        return kong.response.exit(401, { message = "Invalid Credentials" })
       end
     end
   else
