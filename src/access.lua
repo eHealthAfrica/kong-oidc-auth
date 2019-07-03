@@ -12,6 +12,14 @@ local salt = nil --16 char alphanumeric
 local cookieDomain = nil
 
 
+
+local function credsFromBasic(authString)
+  -- local m, err = ngx.re.match(ngx.var.uri, "/(?<app>[^/]+)-app(?<url>.+)", "ao")
+  local m, err = ngx.re.match(authString, "(?<user>[^:]+):(?<pw>[^:]+)", "ao")
+  -- local user = string.gmatch(authString, '([^:]+)')
+  return m
+end
+
 -- Convenience function for logging objects... because LUA...
 local function dump(o)
   if type(o) == 'table' then
@@ -255,6 +263,9 @@ function _M.run(conf)
     if base64_basic ~= nil then
       local plain_text = ngx.decode_base64(base64_basic)
       ngx.log(ngx.ERR, "plain_text: ", plain_text)
+      local c = credsFromBasic(plain_text)
+      ngx.log(ngx.ERR, "user: ", c["user"])
+      ngx.log(ngx.ERR, "pw: ", c["pw"])
     end
   end
 
