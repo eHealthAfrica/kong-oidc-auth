@@ -133,38 +133,36 @@ end
 
 
 function redirect_to_auth( conf, callback_url )
-    -- Track the endpoint they wanted access to so we can transparently redirect them back
-    if type(ngx.header["Set-Cookie"]) == "table" then
+  -- Track the endpoint they wanted access to so we can transparently redirect them back
+  if type(ngx.header["Set-Cookie"]) == "table" then
     ngx.header["Set-Cookie"] = { "EOAuthRedirectBack=" .. ngx.var.request_uri .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 120) .. ";Max-Age=120;HttpOnly", unpack(ngx.header["Set-Cookie"]) }
-    else
+  else
     ngx.header["Set-Cookie"] = { "EOAuthRedirectBack=" .. ngx.var.request_uri .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 120) .. ";Max-Age=120;HttpOnly", ngx.header["Set-Cookie"] }
-    end
-    
-    -- Redirect to the /oauth endpoint
-    local oauth_authorize = nil
-    if(conf.pf_idp_adapter_id == "") then --Standard Auth URL(Something other than ping)
-       oauth_authorize = conf.authorize_url .. "?response_type=code&client_id=" .. conf.client_id .. "&redirect_uri=" .. callback_url .. "&scope=" .. conf.scope
-    else --Ping Federate Auth URL
-         oauth_authorize = conf.authorize_url .. "?pfidpadapterid=" .. conf.pf_idp_adapter_id .. "&response_type=code&client_id=" .. conf.client_id .. "&redirect_uri=" .. callback_url .. "&scope=" .. conf.scope
-    end
-    
-    return ngx.redirect(oauth_authorize)
+  end
+  
+  -- Redirect to the /oauth endpoint
+  local oauth_authorize = nil
+  if(conf.pf_idp_adapter_id == "") then --Standard Auth URL(Something other than ping)
+    oauth_authorize = conf.authorize_url .. "?response_type=code&client_id=" .. conf.client_id .. "&redirect_uri=" .. callback_url .. "&scope=" .. conf.scope
+  else --Ping Federate Auth URL
+    oauth_authorize = conf.authorize_url .. "?pfidpadapterid=" .. conf.pf_idp_adapter_id .. "&response_type=code&client_id=" .. conf.client_id .. "&redirect_uri=" .. callback_url .. "&scope=" .. conf.scope
+  end
+  return ngx.redirect(oauth_authorize)
 end
 
 
 function encode_token(token, conf)
-      return ngx.encode_base64(aes:encrypt(openssl_digest.new("md5"):final(conf.client_secret), salt, true):final(token))
+  return ngx.encode_base64(aes:encrypt(openssl_digest.new("md5"):final(conf.client_secret), salt, true):final(token))
 end
 
 
 function decode_token(token, conf)
-    local status, token = pcall(function () return aes:decrypt(openssl_digest.new("md5"):final(conf.client_secret), salt, true):final(ngx.decode_base64(token)) end)
-    
-    if status then
-        return token
-    else
-        return nil
-    end
+  local status, token = pcall(function () return aes:decrypt(openssl_digest.new("md5"):final(conf.client_secret), salt, true):final(ngx.decode_base64(token)) end)
+  if status then
+    return token
+  else
+    return nil
+  end
 end
 
 
@@ -184,12 +182,12 @@ function  handle_logout(encrypted_token, conf)
     end
   end
    
-   -- Remove session
-   if conf.user_info_cache_enabled then
-      singletons.cache:invalidate(encrypted_token)
-   end
-   -- Redirect to IAM service logout
-   return ngx.redirect(redirect_url)
+  -- Remove session
+  if conf.user_info_cache_enabled then
+    singletons.cache:invalidate(encrypted_token)
+  end
+  -- Redirect to IAM service logout
+  return ngx.redirect(redirect_url)
 end
 
 -- Callback Handling
