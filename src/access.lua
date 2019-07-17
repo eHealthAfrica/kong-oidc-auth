@@ -267,14 +267,20 @@ function _M.run(conf)
     path_prefix = ngx.var.request_uri
   end
   
+  local scheme = ""
+  if conf.use_ssl then
+    scheme = "https"
+  else
+    scheme = ngx.var.scheme
+  end
   if pl_stringx.endswith(path_prefix, "/") then
     path_prefix = path_prefix:sub(1, path_prefix:len() - 1)
-    callback_url = ngx.var.scheme .. "://" .. ngx.var.host .. path_prefix .. "/oauth2/callback"
+    callback_url = scheme .. "://" .. ngx.var.host .. path_prefix .. "/oauth2/callback"
   elseif pl_stringx.endswith(path_prefix, "/oauth2/callback") then --We are in the callback of our proxy
-    callback_url = ngx.var.scheme .. "://" .. ngx.var.host .. path_prefix
+    callback_url = scheme .. "://" .. ngx.var.host .. path_prefix
   handle_callback(conf, callback_url)
   else
-    callback_url = ngx.var.scheme .. "://" .. ngx.var.host .. path_prefix .. "/oauth2/callback"
+    callback_url = scheme .. "://" .. ngx.var.host .. path_prefix .. "/oauth2/callback"
   end
 
   -- See if we have a token
