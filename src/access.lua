@@ -335,6 +335,11 @@ function _M.run(conf)
     return handle_logout(encrypted_token, conf)
   end
   
+  -- Make sure referer header is set for all HTTPS traffic
+  if scheme == "https" and ngx.header["referer"] == nil then
+    ngx.header["referer"] = scheme .. "://" .. ngx.var.host
+  end
+
   --Update the Cookie to increase longevity for 30 more minutes if active proxying
   if type(ngx.header["Set-Cookie"]) == "table" then
     ngx.header["Set-Cookie"] = { "EOAuthToken=" .. encode_token(access_token, conf) .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, unpack(ngx.header["Set-Cookie"]) }
