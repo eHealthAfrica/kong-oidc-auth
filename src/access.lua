@@ -136,7 +136,8 @@ function redirect_to_auth( conf, callback_url )
   -- Track the endpoint they wanted access to so we can transparently redirect them back
   -- For Calls to indicate they prefer a 403 instead of redirect to the Oauth provider,
   -- a header of X-Oauth-Unauthorized can be set to `status_code | login`
-  if ngx.header['X-Oauth-Unauthorized'] ~= nil and ngx.header['X-Oauth-Unauthorized'] == "status_code" then
+  local login_pref = ngx.req.get_headers()["X-Oauth-Unauthorized"]
+  if login_pref ~= nil and login_pref == "status_code" then
     return kong.response.exit(403, { message = "Forbidden: Auth redirect aborted on X-Oauth-Unauthorized == status_code" })
   end
   if type(ngx.header["Set-Cookie"]) == "table" then
