@@ -1,5 +1,5 @@
 package = "kong-oidc-auth"
-version = "0.2-3"
+version = "0.2-4"
 source = {
    url = "git+https://github.com/eHealthAfrica/kong-oidc-auth.git"
 }
