@@ -84,7 +84,7 @@ local function validate_roles(conf, token)
   local _allowed_roles = conf.allowed_roles
   local _next = next(_allowed_roles)
   if _next == nil then
-    return true-- no roles provided for checking. Ok.
+    return true -- no roles provided for checking. Ok.
   end
   if token["groups"] == nil then
     ngx.log(ngx.ERR, 'oidc.userinfo.groups not availble! Check keycloak settings.')
@@ -145,9 +145,9 @@ function redirect_to_auth(conf, callback_url)
 
   -- Redirect to the /oauth endpoint
   local oauth_authorize = nil
-  if(conf.pf_idp_adapter_id == "") then --Standard Auth URL(Something other than ping)
+  if(conf.pf_idp_adapter_id == "") then -- Standard Auth URL(Something other than ping)
     oauth_authorize = conf.authorize_url .. "?response_type=code&client_id=" .. conf.client_id .. "&redirect_uri=" .. callback_url .. "&scope=" .. conf.scope
-  else --Ping Federate Auth URL
+  else -- Ping Federate Auth URL
     oauth_authorize = conf.authorize_url .. "?pfidpadapterid=" .. conf.pf_idp_adapter_id .. "&response_type=code&client_id=" .. conf.client_id .. "&redirect_uri=" .. callback_url .. "&scope=" .. conf.scope
     --oauth_authorize = conf.authorize_url .. "?pfidpadapterid=" .. conf.pf_idp_adapter_id .. "&response_type=code&client_id=" .. conf.client_id .. "&redirect_uri=" .. callback_url .. "&scope=" .. conf.scope .. "&prompt=none"
   end
@@ -171,7 +171,7 @@ end
 
 -- Logout Handling
 function handle_logout(encrypted_token, conf)
-  --Terminate the Cookie
+  -- Terminate the Cookie
   local redirect_url = string.format("%s?redirect_uri=%s", conf.service_logout_url, conf.app_login_redirect_url)
   if type(ngx.header["Set-Cookie"]) == "table" then
     ngx.header["Set-Cookie"] = { "EOAuthToken=;Path=/;Expires=Thu, Jan 01 1970 00:00:00 UTC;Max-Age=0;HttpOnly" .. cookieDomain, unpack(ngx.header["Set-Cookie"]) }
@@ -190,7 +190,7 @@ function handle_logout(encrypted_token, conf)
 end
 
 -- Callback Handling
-function  handle_callback( conf, callback_url )
+function handle_callback( conf, callback_url )
   local args = ngx.req.get_uri_args()
   local code = args.code
   local redirect_url
@@ -233,7 +233,7 @@ function  handle_callback( conf, callback_url )
       ngx.header["Set-Cookie"] = {"EOAuthRealm=" .. conf.realm .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, ngx.header["Set-Cookie"] }
     end
 
-    --Support redirection back to Application Loggedin Dashboard for subsequent transactions
+    -- Support redirection back to Application Logged in Dashboard for subsequent transactions
     if conf.app_login_redirect_url ~= "" then
       return ngx.redirect(conf.app_login_redirect_url)
     end
@@ -242,7 +242,7 @@ function  handle_callback( conf, callback_url )
     local redirect_back = ngx.var.cookie_EOAuthRedirectBack
 
     if redirect_back then
-      return ngx.redirect(redirect_back) --Should always land here if no custom Loggedin page defined!
+      return ngx.redirect(redirect_back) -- Should always land here if no custom Logged in page defined!
     else
       --return redirect_to_auth(conf, callback_url)
       return
@@ -259,7 +259,7 @@ function _M.run(conf)
   cookieDomain = ";Domain=" .. conf.cookie_domain
   salt = conf.salt
 
-  --Fix for /api/team/POC/oidc/v1/service/oauth2/callback?code=*******
+  -- Fix for /api/team/POC/oidc/v1/service/oauth2/callback?code=*******
   if ngx.var.request_uri:find('?') then
     path_prefix = ngx.var.request_uri:sub(1, ngx.var.request_uri:find('?') -1)
   else
@@ -275,7 +275,7 @@ function _M.run(conf)
   if pl_stringx.endswith(path_prefix, "/") then
     path_prefix = path_prefix:sub(1, path_prefix:len() - 1)
     callback_url = scheme .. "://" .. ngx.var.host .. path_prefix .. "/oauth2/callback"
-  elseif pl_stringx.endswith(path_prefix, "/oauth2/callback") then --We are in the callback of our proxy
+  elseif pl_stringx.endswith(path_prefix, "/oauth2/callback") then -- We are in the callback of our proxy
     callback_url = scheme .. "://" .. ngx.var.host .. path_prefix
     handle_callback(conf, callback_url)
   else
@@ -327,7 +327,7 @@ function _M.run(conf)
     return redirect_to_auth(conf, callback_url)
   end
 
-  --They had a valid EOAuthToken so its safe to process a proper logout now.
+  -- They had a valid EOAuthToken so its safe to process a proper logout now.
   if pl_stringx.endswith(path_prefix, "/logout") then
     return handle_logout(encrypted_token, conf)
   end
@@ -337,7 +337,7 @@ function _M.run(conf)
     ngx.header["referer"] = scheme .. "://" .. ngx.var.host
   end
 
-  --Update the Cookie to increase longevity for 30 more minutes if active proxying
+  -- Update the Cookie to increase longevity for 30 more minutes if active proxying
   if type(ngx.header["Set-Cookie"]) == "table" then
     ngx.header["Set-Cookie"] = { "EOAuthToken=" .. encrypted_token .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, unpack(ngx.header["Set-Cookie"]) }
   else
@@ -347,7 +347,7 @@ function _M.run(conf)
     ngx.header["Set-Cookie"] = {"EOAuthRealm=" .. conf.realm .. ";Path=/;Expires=" .. ngx.cookie_time(ngx.time() + 1800) .. ";Max-Age=1800;HttpOnly" .. cookieDomain, ngx.header["Set-Cookie"] }
   end
 
-  --CACHE LOGIC - Check boolean and then if EOAUTH has existing key -> userInfo value
+  -- CACHE LOGIC - Check boolean and then if EOAUTH has existing key -> userInfo value
   if conf.user_info_cache_enabled then
     local userInfo = getKongKey(encrypted_token, access_token, callback_url, conf)
     if userInfo then
